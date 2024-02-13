@@ -23,8 +23,8 @@ export default function Microphone() {
   const [micOpen, setMicOpen] = useState(false);
   const [microphone, setMicrophone] = useState<MediaRecorder | null>();
   const [userMedia, setUserMedia] = useState<MediaStream | null>();
-  const [captionBuffer, setCaptionBuffer] = useState<string | null>();
-  const [caption, setCaption] = useState<string | null>();
+  const [captionBuffer, setCaptionBuffer] = useState<string>("");
+  const [caption, setCaption] = useState<string>("");
 
   const toggleMicrophone = useCallback(async () => {
     if (microphone && userMedia) {
@@ -54,8 +54,10 @@ export default function Microphone() {
 
       setUserMedia(userMedia);
       setMicrophone(microphone);
+      setCaption("");
+      setCaptionBuffer("");
     }
-  }, [add, microphone, userMedia]);
+  }, [microphone, userMedia]);
 
   useEffect(() => {
     if (!apiKey) {
@@ -97,13 +99,18 @@ export default function Microphone() {
       });
 
       connection.on(LiveTranscriptionEvents.Transcript, (data) => {
-        if (!data.channel.is_final) {
-          setCaptionBuffer(data.channel.alternatives[0].transcription);
-        } else {
-          setCaption(data.channel.alternatives[0].transcription);
+        console.log(data.channel);
+        if (data.channel.alternatives[0].transcript != "") {
+          if (!data.is_final) {
+            console.log('writing to buffer');
+            setCaptionBuffer(data.channel.alternatives[0].transcript);
+          } else {
+            console.log('writing to caption');
+            setCaptionBuffer("");
+            setCaption(caption + " " + data.channel.alternatives[0].transcript);
+          }
         }
       });
-        
 
       setConnection(connection);
       setLoading(false);
@@ -171,8 +178,8 @@ export default function Microphone() {
           />
         </button>
         <div className="mt-20 p-6 text-xl text-center">
-          {(caption || captionBuffer) && micOpen
-            ? caption
+          {(caption.length > 0 || captionBuffer.length > 0)
+            ? caption + captionBuffer
             : "** Realtime transcription by Deepgram **"}
         </div>
       </div>
